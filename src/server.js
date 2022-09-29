@@ -2,12 +2,14 @@ import dotenv from "dotenv";
 import express from "express";
 import cors from "cors";
 import connection from "./database/database.js";
+import categoriesRouter from "./routes/categoriesRoutes.js";
 dotenv.config();
 
 const server = express();
 
 server.use(cors());
 server.use(express.json());
+server.use(categoriesRouter);
 
 server.get("/test", async (req, res) => {
   try {
