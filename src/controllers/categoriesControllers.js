@@ -16,7 +16,7 @@ async function getCategories(req, res) {
 }
 async function createCategories(req, res) {
   const { name } = req.body;
-  const validation = schemaCategorie.validate({ name }, { abortEarly: false });
+  const validation = schemaCategorie.validate({ name });
   if (validation.error) {
     return res.status(400).send(validation.error.details.map((e) => e.message));
   }
