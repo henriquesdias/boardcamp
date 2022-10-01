@@ -67,4 +67,32 @@ async function createCustomer(req, res) {
   }
   res.send({ name, phone, cpf, birthday });
 }
-export { getCustomers, getCustomerById, createCustomer };
+async function updateCustomerById(req, res) {
+  const { name, phone, cpf, birthday } = req.body;
+  const { id } = req.params;
+  const validation = schemaCustomer.validate(
+    { name, phone, cpf, birthday },
+    { abortEarly: false }
+  );
+  if (validation.error) {
+    res.status(400).send(validation.error.details.map((e) => e.message));
+  }
+  try {
+    const customer = await connection.query(
+      "SELECT * FROM customers WHERE cpf = $1;",
+      [cpf]
+    );
+    if (customer.rows.length !== 0) {
+      console.log("tem cliente com esse cpf");
+      return res.sendStatus(409);
+    }
+    await connection.query(
+      "UPDATE customers SET name = $1 , phone = $2 , cpf = $3 , birthday = $4 WHERE id = $5;",
+      [name, phone, cpf, birthday, id]
+    );
+    res.sendStatus(200);
+  } catch (error) {
+    res.status(500).send(error.message);
+  }
+}
+export { getCustomers, getCustomerById, createCustomer, updateCustomerById };
