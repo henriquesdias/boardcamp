@@ -1,14 +1,5 @@
 import connection from "../database/database.js";
 
-import joi from "joi";
-
-const schemaCustomer = joi.object({
-  name: joi.string().required().trim(),
-  phone: joi.string().min(10).max(11).required().trim(),
-  cpf: joi.string().required().trim().length(11),
-  birthday: joi.date().required(),
-});
-
 async function getCustomers(req, res) {
   const filter = req.query.cpf;
   try {
@@ -41,14 +32,7 @@ async function getCustomerById(req, res) {
   }
 }
 async function createCustomer(req, res) {
-  const { name, phone, cpf, birthday } = req.body;
-  const validation = schemaCustomer.validate(
-    { name, phone, cpf, birthday },
-    { abortEarly: false }
-  );
-  if (validation.error) {
-    res.status(400).send(validation.error.details.map((e) => e.message));
-  }
+  const { name, phone, cpf, birthday } = res.locals.info;
   try {
     const customer = await connection.query(
       "SELECT * FROM customers WHERE cpf = $1",
@@ -68,22 +52,14 @@ async function createCustomer(req, res) {
   res.send({ name, phone, cpf, birthday });
 }
 async function updateCustomerById(req, res) {
-  const { name, phone, cpf, birthday } = req.body;
   const { id } = req.params;
-  const validation = schemaCustomer.validate(
-    { name, phone, cpf, birthday },
-    { abortEarly: false }
-  );
-  if (validation.error) {
-    res.status(400).send(validation.error.details.map((e) => e.message));
-  }
+  const { name, phone, cpf, birthday } = res.locals.info;
   try {
     const customer = await connection.query(
       "SELECT * FROM customers WHERE cpf = $1;",
       [cpf]
     );
     if (customer.rows.length !== 0) {
-      console.log("tem cliente com esse cpf");
       return res.sendStatus(409);
     }
     await connection.query(
