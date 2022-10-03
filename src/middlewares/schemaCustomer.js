@@ -4,7 +4,7 @@ const schemaCustomer = joi.object({
   name: joi.string().required().trim(),
   phone: joi.string().min(10).max(11).required().trim(),
   cpf: joi.string().required().trim().length(11),
-  birthday: joi.date().required(),
+  birthday: joi.string().isoDate().required(),
 });
 
 function schemaCustomerValidate(req, res, next) {

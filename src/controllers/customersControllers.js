@@ -56,8 +56,8 @@ async function updateCustomerById(req, res) {
   const { name, phone, cpf, birthday } = res.locals.info;
   try {
     const customer = await connection.query(
-      "SELECT * FROM customers WHERE cpf = $1;",
-      [cpf]
+      "SELECT * FROM customers WHERE cpf = $1 and id != $2;",
+      [cpf, id]
     );
     if (customer.rows.length !== 0) {
       return res.sendStatus(409);
