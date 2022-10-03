@@ -1,9 +1,9 @@
 import joi from "joi";
 
 const schemaRental = joi.object({
-  customerId: joi.number().required().min(1),
-  gameId: joi.number().required().min(1),
-  daysRented: joi.number().required().min(1),
+  customerId: joi.number().required().min(1).integer(),
+  gameId: joi.number().required().min(1).integer(),
+  daysRented: joi.number().required().min(1).integer(),
 });
 function schemaRentalValidate(req, res, next) {
   const { customerId, gameId, daysRented } = req.body;
