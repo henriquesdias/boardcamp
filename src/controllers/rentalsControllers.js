@@ -4,12 +4,7 @@ import dayjs from "dayjs";
 
 async function createRental(req, res) {
   const { customerId, gameId, daysRented } = res.locals.info;
-  const date = new Date();
-  const today = `${date.toLocaleString("default", {
-    year: "numeric",
-  })}-${date.toLocaleString("default", {
-    month: "2-digit",
-  })}-${date.toLocaleString("default", { day: "2-digit" })}`;
+  const today = dayjs().format("YYYY-MM-DD");
   try {
     const customer = await connection.query(
       "SELECT * FROM customers WHERE id = $1",
@@ -22,6 +17,13 @@ async function createRental(req, res) {
       gameId,
     ]);
     if (game.rows.length === 0) {
+      return res.sendStatus(400);
+    }
+    const rentals = await connection.query(
+      'SELECT * FROM rentals WHERE "gameId" = $1 and "returnDate" IS NULL',
+      [gameId]
+    );
+    if (rentals.rows.length >= game.rows[0].stockTotal) {
       return res.sendStatus(400);
     }
     const totalPrice = game.rows[0].pricePerDay * daysRented;
@@ -93,7 +95,6 @@ async function deleteRental(req, res) {
 }
 async function finalizeRental(req, res) {
   const { id } = req.params;
-  const date = new Date();
   const now = dayjs().format("YYYY-MM-DD");
   try {
     const rental = await connection.query(
@@ -109,11 +110,23 @@ async function finalizeRental(req, res) {
     const { daysRented, rentDate, originalPrice } = rental.rows[0];
     const add = dayjs(rentDate).add(daysRented, "day");
     const deadline = add.format("YYYY-MM-DD");
-    // date.getTime(deadline);
-    // date.getTime(now);
-    // console.log(Date.now());
-    // console.log(date.valueOf(deadline));
-
+    const timestampDeadline = new Date(deadline).getTime();
+    const timestampNow = new Date().getTime();
+    if (timestampDeadline - timestampNow >= 0) {
+      const days = (timestampDeadline - timestampNow) / (1000 * 60 * 60 * 24);
+      await connection.query(
+        'UPDATE rentals SET "returnDate" = $1 WHERE id = $2',
+        [now, id]
+      );
+      return res.sendStatus(200);
+    }
+    const daysDelay = Math.round(
+      (timestampNow - timestampDeadline) / (1000 * 60 * 60 * 24)
+    );
+    await connection.query(
+      'UPDATE rentals SET "returnDate" = $1, "delayFee" = $2 WHERE id = $3',
+      [now, Number(originalPrice) * daysDelay, id]
+    );
     res.sendStatus(200);
   } catch (error) {
     res.status(500).send(error.message);
