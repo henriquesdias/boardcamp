@@ -1,11 +1,5 @@
 import connection from "../database/database.js";
 
-import joi from "joi";
-
-const schemaCategorie = joi.object({
-  name: joi.string().trim().required(),
-});
-
 async function getCategories(req, res) {
   try {
     const categories = await connection.query("SELECT * FROM categories;");
@@ -15,11 +9,7 @@ async function getCategories(req, res) {
   }
 }
 async function createCategories(req, res) {
-  const { name } = req.body;
-  const validation = schemaCategorie.validate({ name });
-  if (validation.error) {
-    return res.status(400).send(validation.error.details.map((e) => e.message));
-  }
+  const { name } = res.locals.info;
   try {
     const categorie = await connection.query(
       "SELECT * FROM categories WHERE name = $1",

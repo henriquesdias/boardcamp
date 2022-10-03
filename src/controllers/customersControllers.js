@@ -1,14 +1,5 @@
 import connection from "../database/database.js";
 
-import joi from "joi";
-
-const schemaCustomer = joi.object({
-  name: joi.string().required().trim(),
-  phone: joi.string().min(10).max(11).required().trim(),
-  cpf: joi.string().required().trim().length(11),
-  birthday: joi.date().required(),
-});
-
 async function getCustomers(req, res) {
   const filter = req.query.cpf;
   try {
@@ -41,14 +32,7 @@ async function getCustomerById(req, res) {
   }
 }
 async function createCustomer(req, res) {
-  const { name, phone, cpf, birthday } = req.body;
-  const validation = schemaCustomer.validate(
-    { name, phone, cpf, birthday },
-    { abortEarly: false }
-  );
-  if (validation.error) {
-    res.status(400).send(validation.error.details.map((e) => e.message));
-  }
+  const { name, phone, cpf, birthday } = res.locals.info;
   try {
     const customer = await connection.query(
       "SELECT * FROM customers WHERE cpf = $1",
@@ -67,4 +51,24 @@ async function createCustomer(req, res) {
   }
   res.send({ name, phone, cpf, birthday });
 }
-export { getCustomers, getCustomerById, createCustomer };
+async function updateCustomerById(req, res) {
+  const { id } = req.params;
+  const { name, phone, cpf, birthday } = res.locals.info;
+  try {
+    const customer = await connection.query(
+      "SELECT * FROM customers WHERE cpf = $1 and id != $2;",
+      [cpf, id]
+    );
+    if (customer.rows.length !== 0) {
+      return res.sendStatus(409);
+    }
+    await connection.query(
+      "UPDATE customers SET name = $1 , phone = $2 , cpf = $3 , birthday = $4 WHERE id = $5;",
+      [name, phone, cpf, birthday, id]
+    );
+    res.sendStatus(200);
+  } catch (error) {
+    res.status(500).send(error.message);
+  }
+}
+export { getCustomers, getCustomerById, createCustomer, updateCustomerById };
