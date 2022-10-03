@@ -115,8 +115,8 @@ async function finalizeRental(req, res) {
     if (timestampDeadline - timestampNow >= 0) {
       const days = (timestampDeadline - timestampNow) / (1000 * 60 * 60 * 24);
       await connection.query(
-        'UPDATE rentals SET "returnDate" = $1 WHERE id = $2',
-        [now, id]
+        'UPDATE rentals SET "returnDate" = $1, "delayFee" = $2 WHERE id = $3',
+        [now, 0, id]
       );
       return res.sendStatus(200);
     }
