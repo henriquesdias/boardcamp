@@ -1,5 +1,7 @@
 import connection from "../database/database.js";
 
+import dayjs from "dayjs";
+
 async function createRental(req, res) {
   const { customerId, gameId, daysRented } = res.locals.info;
   const date = new Date();
@@ -33,11 +35,38 @@ async function createRental(req, res) {
   }
 }
 async function getRentals(req, res) {
+  const customerId = req.query.customerId;
+  const gameId = req.query.gameId;
   try {
+    if (customerId !== undefined && gameId !== undefined) {
+      const rentals = await connection.query(
+        `SELECT rentals.*, JSON_BUILD_OBJECT('id', customers.id,'name',customers.name) AS customer, JSON_BUILD_OBJECT('id',games.id,'name', games.name, 'categoryId', games."categoryId", 'categoryName', categories.name) AS game FROM rentals JOIN customers ON rentals."customerId" = customers.id JOIN games ON games.id = rentals."gameId" JOIN categories ON games."categoryId" = categories.id WHERE "customerId" = $1 and "gameId" = $2;
+        `,
+        [customerId, gameId]
+      );
+      return res.send(rentals.rows);
+    }
+    if (gameId !== undefined) {
+      const rentals = await connection.query(
+        `SELECT rentals.*, JSON_BUILD_OBJECT('id', customers.id,'name',customers.name) AS customer, JSON_BUILD_OBJECT('id',games.id,'name', games.name, 'categoryId', games."categoryId", 'categoryName', categories.name) AS game FROM rentals JOIN customers ON rentals."customerId" = customers.id JOIN games ON games.id = rentals."gameId" JOIN categories ON games."categoryId" = categories.id WHERE "gameId" = $1;
+        `,
+        [gameId]
+      );
+      return res.send(rentals.rows);
+    }
+    if (customerId !== undefined) {
+      const rentals = await connection.query(
+        `SELECT rentals.*, JSON_BUILD_OBJECT('id', customers.id,'name',customers.name) AS customer, JSON_BUILD_OBJECT('id',games.id,'name', games.name, 'categoryId', games."categoryId", 'categoryName', categories.name) AS game FROM rentals JOIN customers ON rentals."customerId" = customers.id JOIN games ON games.id = rentals."gameId" JOIN categories ON games."categoryId" = categories.id WHERE "customerId" = $1;
+        `,
+        [customerId]
+      );
+      return res.send(rentals.rows);
+    }
     const rentals = await connection.query(
       `SELECT rentals.*, JSON_BUILD_OBJECT('id', customers.id,'name',customers.name) AS customer, JSON_BUILD_OBJECT('id',games.id,'name', games.name, 'categoryId', games."categoryId", 'categoryName', categories.name) AS game FROM rentals JOIN customers ON rentals."customerId" = customers.id JOIN games ON games.id = rentals."gameId" JOIN categories ON games."categoryId" = categories.id;
       `
     );
+
     res.send(rentals.rows);
   } catch (error) {
     res.status(500).send(error.message);
@@ -65,11 +94,7 @@ async function deleteRental(req, res) {
 async function finalizeRental(req, res) {
   const { id } = req.params;
   const date = new Date();
-  const today = `${date.toLocaleString("default", {
-    year: "numeric",
-  })}-${date.toLocaleString("default", {
-    month: "2-digit",
-  })}-${date.toLocaleString("default", { day: "2-digit" })}`;
+  const now = dayjs().format("YYYY-MM-DD");
   try {
     const rental = await connection.query(
       "SELECT * FROM rentals WHERE id = $1",
@@ -82,11 +107,13 @@ async function finalizeRental(req, res) {
       return res.sendStatus(400);
     }
     const { daysRented, rentDate, originalPrice } = rental.rows[0];
-    // const dateOfReturn = today.split("-");
-    // dateOfReturn[2] = (Number(dateOfReturn[2]) + Number(daysRented)).toString();
-    // console.log(date.getTime(rentDate));
+    const add = dayjs(rentDate).add(daysRented, "day");
+    const deadline = add.format("YYYY-MM-DD");
+    // date.getTime(deadline);
+    // date.getTime(now);
+    // console.log(Date.now());
+    // console.log(date.valueOf(deadline));
 
-    console.log(rentDate.getDay());
     res.sendStatus(200);
   } catch (error) {
     res.status(500).send(error.message);
